@@ -1,9 +1,13 @@
 /*
-【GLaDOS】@evilbutcher
+【GLaDOS】原作者@evilbutcher
+【GLaDOS】修改@CreamK
 
-【仓库地址】https://github.com/evilbutcher/Quantumult_X/tree/master（欢迎star🌟）
+【修改内容】调整输出格式
+          适配多账号
+	  适配青龙
 
-【BoxJs】https://raw.githubusercontent.com/evilbutcher/Quantumult_X/master/evilbutcher.boxjs.json
+【BoxJs】https://raw.githubusercontent.com/CreamK/Scripts/main/creamk.box.json
+ Boxjs中填入ck和ck数量！！！！！
 
 【致谢】
 本脚本使用了Chavy的Env.js，感谢！
@@ -20,34 +24,10 @@
 
 登陆链接：https://glados.rocks/，登陆即可获取Cookie。
 注册地址：https://github.com/glados-network/GLaDOS
-邀请码：3JRG4-KSGZJ-8QPXF-8PPOO
+邀请码：4L6TT-353B4-A0N85-5MHF4
 
-【Surge】
------------------
-[Script]
-GLaDOS签到 = type=cron,cronexp=5 0 * * *,wake-system=1,timeout=20,script-path=https://raw.githubusercontent.com/evilbutcher/Quantumult_X/master/check_in/glados/glados.js
+使用建议：先购买一个月会员，获得30天的basic套餐和签到续命的权限，用教育邮箱认证延长365天的使用权限，然后使用本脚本
 
-获取GLaDOS_Cookie = type=http-request, pattern=https:\/\/glados\.rocks\/api\/user\/checkin, script-path=https://raw.githubusercontent.com/evilbutcher/Quantumult_X/master/check_in/glados/glados.js
-
-【Loon】
------------------
-[Script]
-cron "5 0 * * *" tag=GLaDOS签到, script-path=https://raw.githubusercontent.com/evilbutcher/Quantumult_X/master/check_in/glados/glados.js
-
-http-request https:\/\/glados\.rocks\/api\/user\/checkin tag=获取GLaDOS_Cookie, script-path=https://raw.githubusercontent.com/evilbutcher/Quantumult_X/master/check_in/glados/glados.js
-
-
-【Quantumult X】
------------------
-[rewrite_local]
-https:\/\/glados\.rocks\/api\/user\/checkin url script-request-header https://raw.githubusercontent.com/evilbutcher/Quantumult_X/master/check_in/glados/glados.js
-
-[task_local]
-1 0 * * * https://raw.githubusercontent.com/evilbutcher/Quantumult_X/master/check_in/glados/glados.js
-
-
-【All App MitM】
-hostname = glados.rocks
 */
 
 const $ = new Env("GLaDOS");
@@ -56,13 +36,17 @@ const signcookie = "evil_gladoscookie";
 
 var gladosCookie =[]
 if($.isNode()){ //node环境
+	
+  gladosCookie=process.env.gladosCookie.split('#');
 
-  gladosCookie=process.env.gladoscookie.split('#');
-
+}else{//qx环境
+     gladosCookie.push($.getdata('gladosCookie'));
+     let Count = ($.getdata('gladosCount') || '1') - 0;
+     for (let i = 2; i <= Count; i++) {       
+        gladosCookie.push($.getdata(`gladosCookie${i}`));
+    }	
 }
 
-//var sicookie = $.isNode() ?process.env.gladoscookie :$.getdata('sicookie');
-//var sicookie_edu =  $.isNode() ?process.env.gladoscookie_edu:$.getdata('sicookie_edu');
 var account;
 var expday;
 var remain;
@@ -77,10 +61,9 @@ var message="";
     getCookie();
     return;
   }
-
+  
   for(let i=0;i<gladosCookie.length;i++){
      sicookie=gladosCookie[i];
-     $.log(sicookie)
      $.message_sign ="";
      $.message_flows="";
      await signin(sicookie);
@@ -89,11 +72,15 @@ var message="";
      message=message+'\n'
      $.message_flows=""//清空get_flows里的消息
      $.message_sign=""//清空chekin里的消息
-	 $.sicookie=""
+     $.sicookie=""
   }
-       
-  $.msg("GLaDOS签到开始！", message);
-  await notify.sendNotify($.name, message);
+  
+  if ($.isNode()){
+      await notify.sendNotify($.name, message);
+  }else{
+     $.msg(message);
+  }
+  
 })()
   .catch((e) => {
     $.log("", `❌失败! 原因: ${e}!`, "");
@@ -174,6 +161,7 @@ function status(cookie) {
         message += `已用${expday}天,剩余${remainday}天\n`;
         message +=$.message_flows
         message +=$.message_sign
+	
       } else {
         $.log(response);
         $.msg("GLaDOS", "", "❌请重新登陆更新Cookie");
